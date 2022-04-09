@@ -1,13 +1,15 @@
 #ifndef KALMAN_H
 #define KALMAN_H
 
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/LU>
-#include <eigen3/Eigen/Dense>
+#include "Eigen/Core"
+#include "Eigen/LU"
+#include "Eigen/Dense"
 
 #include <exception>
 
 #include <iostream>
+
+//#define DEBUG 1
 
 //Explained here: https://www.kalmanfilter.net/multiSummary.html
 
@@ -15,15 +17,15 @@
 const int sz = 3; //Number of variables tracked- x, x', x'', y, y', y'', z, z', z'', theta, theta', theta''
 typedef Eigen::Matrix<double, sz, sz> Mat;
 typedef Eigen::Matrix<double, sz, 1> Vec;
-const int sensors = 1; //Number of sensors
+const int sensors = 3; //Number of sensors
 
 //Prediction Functions
-Vec calcState(Mat F, Vec xOld, Mat G, Vec u);
+Vec calcState(Mat F, Vec x, Mat G, Vec u);
 Mat calcUncertainty(Mat F, Mat POld, Mat Q);
 
 //Correction Functions
 Mat calcGain(Mat POld, Mat H, Mat R);
-Vec updateState(Vec xOld, Mat K, Vec z, Mat H);
+Vec updateState(Vec x, Mat K, Vec z, Mat H);
 Mat updateUncertainty(Mat K, Mat H, Mat POld, Mat R);
 
 //Kalman Simulation Class
@@ -32,7 +34,7 @@ class Kalman
 private:
 	Mat Q, K, F, G;
 	Mat P[sensors], POld[sensors], H[sensors], R[sensors];
-	Vec x, xOld;
+	Vec x;
 
 public:
 	Kalman(Vec x0_, Mat Q_, Mat F_, Mat G_, Mat *P_, Mat *H_, Mat *R_);

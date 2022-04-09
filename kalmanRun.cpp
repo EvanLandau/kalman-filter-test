@@ -6,7 +6,7 @@
 
 
 //First wrapper function
-void sensor0(Kalman k, double x, double v, double a, std::default_random_engine generator, std::normal_distribution<double> distribution);
+void sensor(Kalman* k, double x, double v, double a, std::default_random_engine generator, std::normal_distribution<double> distribution);
 //Control updater
 Vec calcU();
 
@@ -23,34 +23,43 @@ int main()
 	P0 << 1.0, 1.0, 1.0,
 		  1.0, 1.0, 1.0,
 		  1.0, 1.0, 1.0;
-
+	
 	H0 << 1.0, 0.0, 0.0,
+		  0.0, 0.0, 0.0,
+		  0.0, 0.0, 0.0;
+
+	R0 << 1.0, 0.0, 0.0,
 		  0.0, 1.0, 0.0,
 		  0.0, 0.0, 1.0;
 
-	R0 << 1.0, 1.0, 1.0,
+	
+	//Matrices for sensor one
+	Mat P1, H1, R1;
+	P1 << 1.0, 1.0, 1.0,
 		  1.0, 1.0, 1.0,
 		  1.0, 1.0, 1.0;
 
-	/*
-	//Matrices for sensor one
-	Mat P1 = Mat();
-	Mat H1 = Mat();
-	Mat R1 = Mat();
-	void sensor1()
-	{
+	H1 << 0.0, 0.0, 0.0,
+		  0.0, 1.0, 0.0,
+		  0.0, 0.0, 0.0;
 
-	}
+	R1 << 1.0, 0.0, 0.0,
+		  0.0, 1.0, 0.0,
+		  0.0, 0.0, 1.0;
 
 	//Matrices for sensor two
-	Mat P2 = Mat();
-	Mat H2 = Mat();
-	Mat R2 = Mat();
-	void sensor2()
-	{
+	Mat P2, H2, R2;
+	P2 << 1.0, 1.0, 1.0,
+		  1.0, 1.0, 1.0,
+	      1.0, 1.0, 1.0;
 
-	}
-	*/
+	H2 << 0.0, 0.0, 0.0,
+		  0.0, 0.0, 0.0,
+		  0.0, 0.0, 1.0;
+
+	R2 << 1.0, 0.0, 0.0,
+		  0.0, 1.0, 0.0,
+	  	  0.0, 0.0, 1.0;
 
 	//General values
 	Mat Q, F, G;
@@ -66,25 +75,29 @@ int main()
 		 0.0, 1.0, 0.0,
 		 0.0, 0.0, 1.0;
 
-	Vec x0; x0 << 0.0, 0.0, 0.0;
+	Vec x0; x0 << 0, 0.0, 0.0;
 
-	double x, v, a = 0; v, a = 1.0;
+	double r = 0.0;
+	double v = 0.0;
+	double a = 1.0;
 
-	Mat Parray[1] = {P0};
-	Mat Harray[1] = {H0};
-	Mat Rarray[1] = {R0};
+	Mat Parray[3] = {P0, P1, P2};
+	Mat Harray[3] = {H0, H1, H2};
+	Mat Rarray[3] = {R0, R1, R2};
 
 	Kalman k = Kalman(x0, Q, F, G, Parray, Harray, Rarray);
 
 	while (true) //Test loop
 	{
 		k.predict(0, calcU());
-		sensor0(k, x, v, a, generator, distribution);
-		std::cout << "Real: " << x << '\n';
+		k.predict(1, calcU());
+		k.predict(2, calcU());
+		sensor(&k, r, v, a, generator, distribution);
+		std::cout << "#== Real: ==#\n" << r << '\n';
 		std::cout << v << '\n' << a << '\n';
-		std::cout << "Calculated: "<< k.getX() << '\n';
+		std::cout << "#== Calculated: ==#\n"<< k.getX() << '\n';
 		//Physics update
-		x = x + v * dt + a * dt * dt / 2;
+		r = r + v * dt + a * dt * dt / 2;
 		v = v + a * dt;
 		a = a;
 		//Pause for input
@@ -93,14 +106,16 @@ int main()
 }
 
 //First wrapper function
-void sensor0(Kalman k, double x, double v, double a, std::default_random_engine generator, std::normal_distribution<double> distribution)
+void sensor(Kalman* k, double r, double v, double a, std::default_random_engine generator, std::normal_distribution<double> distribution)
 {
 	//Add noise to measurements
-	double xn = x + distribution(generator) * 10;
-	double vn = v + distribution(generator) * 10;
-	double an = a + distribution(generator) * 10;
-	Vec z; z << xn, vn, an;
-	k.correct(0, z);
+	double rn = r + distribution(generator);
+	double vn = v + distribution(generator);
+	double an = a + distribution(generator);
+	Vec z; z << rn, vn, an;
+	k->correct(0, z);
+	k->correct(1, z);
+	k->correct(2, z);
 }
 
 //Control updater
